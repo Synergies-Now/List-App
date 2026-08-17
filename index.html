@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Edna packs">
+<meta name="theme-color" content="#ff8a1e">
+<meta name="description" content="Edna's travel packing checklist — works offline once installed.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>Edna's Packing List 🧳</title>
+<style>
+  :root {
+    --bg-top: #fff8ec;
+    --bg-bottom: #ffe9c7;
+    --card: #ffffff;
+    --text: #5a3a17;
+    --muted: #b98a55;
+    --border: #ffe1b0;
+    --accent: #ff8a1e;
+    --accent2: #ff4d3d;
+    --yellow: #ffca3a;
+    --accent-text: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-top: #2b1a0f;
+      --bg-bottom: #1f140b;
+      --card: #3a2416;
+      --text: #ffe9d1;
+      --muted: #cf9a63;
+      --border: #4d3220;
+      --accent: #ff9d42;
+      --accent2: #ff6b4d;
+      --yellow: #ffd166;
+      --accent-text: #2b1a0f;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    background-attachment: fixed;
+    color: var(--text);
+    padding-bottom: 96px;
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(180deg, var(--bg-top) 80%, transparent);
+    padding: 14px 16px 9px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 1.15rem;
+    margin: 0 0 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 800;
+  }
+  .subtitle { color: var(--muted); font-size: 0.76rem; }
+  main { padding: 12px 12px 14px; max-width: 620px; margin: 0 auto; }
+  .section { margin-bottom: 14px; }
+  .section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 5px 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(200, 130, 60, 0.12);
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px 8px 11px;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    min-height: 42px;
+  }
+  .item:last-child { border-bottom: none; }
+  .tap-zone {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+    min-width: 0;
+    padding: 4px 0;
+  }
+  .tap-zone:active { opacity: 0.6; }
+  .box {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 19px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--accent-text);
+  }
+  .item.checked .box { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: transparent; }
+  .item-text { flex: 1; min-width: 0; }
+  .item-name { font-size: 0.9rem; font-weight: 600; line-height: 1.25; }
+  .item-note { font-size: 0.69rem; color: var(--muted); margin-top: 1px; }
+  .crit-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .del-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 1.05rem;
+    line-height: 1;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .del-btn:active { background: rgba(255, 77, 61, 0.14); color: var(--accent2); }
+  .shop .item { cursor: pointer; }
+  .item.removing { opacity: 0; transform: scale(0.95); }
+  .empty-msg {
+    text-align: center;
+    color: var(--muted);
+    padding: 44px 16px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .warn-strip {
+    background: rgba(255, 77, 61, 0.12);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    border-radius: 12px;
+    padding: 9px 13px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .add-row { display: flex; gap: 7px; margin-top: 2px; }
+  .add-row input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .add-row button {
+    width: 42px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: var(--accent-text);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .hint { font-size: 0.68rem; color: var(--muted); margin: 5px 0 0 10px; }
+  .restore-btn {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    padding: 9px;
+    border-radius: 999px;
+    border: 1px dashed var(--border);
+    background: none;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--bg-bottom);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 999px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--accent-text); box-shadow: 0 4px 14px rgba(255,138,30,0.35); }
+  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn:disabled { opacity: 0.4; box-shadow: none; }
+  .toast {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 74px;
+    background: var(--text);
+    color: var(--bg-top);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    z-index: 20;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  }
+  .toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toast button { background: none; border: none; color: var(--bg-top); font-weight: 800; font-size: 0.8rem; flex-shrink: 0; }
+  .count-pill {
+    display: inline-block;
+    background: var(--yellow);
+    color: #5a3a17;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="pageTitle">Edna's Packing List 🧳</h1>
+  <div class="subtitle" id="pageSubtitle">Tick what you're taking, then start packing ✈️</div>
+</header>
+
+<noscript>
+  <div style="max-width:640px;margin:16px auto;padding:16px;border-radius:16px;background:var(--card);border:1px solid var(--border);color:var(--text);">
+    <strong>This needs JavaScript to show your list 🙃</strong><br>
+    If you opened this from a chat app's built-in preview, it blocks scripts. Open it in a real browser (Safari/Chrome) instead.
+  </div>
+</noscript>
+
+<main id="main"></main>
+
+<div id="toastHost"></div>
+
+<div class="bottom-bar" id="bottomBar"></div>
+
+<script>
+const STORAGE_KEY = 'packingAppStateEdna_v1';
+
+const CATEGORIES = [
+  { name: "Documents & Money",  icon: "🛂" },
+  { name: "Electronics",        icon: "🔌" },
+  { name: "Health & Meds",      icon: "💊" },
+  { name: "Toiletries",         icon: "🧴" },
+  { name: "Clothes",            icon: "👗" },
+  { name: "Day bag",            icon: "👜" },
+  { name: "Before you leave",   icon: "🏠" },
+  { name: "Other",              icon: "🌸" }
+];
+
+/* Home-only tasks — never restored for the trip back */
+const HOME_ONLY = "Before you leave";
+
+/* [name, note, section, essential?] */
+const STARTER = [
+  ["Passport", "check it's valid 6+ months", "Documents & Money", true],
+  ["Visa / eTA", "if your destination needs one", "Documents & Money", true],
+  ["Travel insurance", "policy number saved offline", "Documents & Money", true],
+  ["Flight tickets", "boarding passes downloaded", "Documents & Money", true],
+  ["Bank cards", "", "Documents & Money", true],
+  ["Cash / local currency", "", "Documents & Money", true],
+  ["Accommodation bookings", "", "Documents & Money", false],
+  ["Driver's licence", "incl. international permit", "Documents & Money", false],
+  ["Copies of documents", "photos on your phone", "Documents & Money", false],
+  ["Vaccination certificate", "", "Documents & Money", false],
+
+  ["Phone", "", "Electronics", true],
+  ["Phone charger", "", "Electronics", true],
+  ["Travel adaptor", "check the plug type", "Electronics", true],
+  ["Charging cables", "", "Electronics", false],
+  ["Power bank", "", "Electronics", false],
+  ["Headphones", "", "Electronics", false],
+  ["Camera", "", "Electronics", false],
+  ["Laptop / tablet", "", "Electronics", false],
+
+  ["Prescription medication", "enough for the whole trip", "Health & Meds", true],
+  ["Painkillers", "", "Health & Meds", false],
+  ["Motion sickness tablets", "", "Health & Meds", false],
+  ["Plasters / first aid", "", "Health & Meds", false],
+  ["Hand sanitiser", "", "Health & Meds", false],
+  ["Sunscreen", "", "Health & Meds", false],
+  ["Insect repellent", "", "Health & Meds", false],
+  ["Glasses / contact lenses", "", "Health & Meds", false],
+
+  ["Toothbrush & toothpaste", "", "Toiletries", false],
+  ["Shampoo & conditioner", "under 100ml for cabin bag", "Toiletries", false],
+  ["Body wash", "", "Toiletries", false],
+  ["Deodorant", "", "Toiletries", false],
+  ["Moisturiser", "", "Toiletries", false],
+  ["Skincare", "", "Toiletries", false],
+  ["Makeup", "", "Toiletries", false],
+  ["Hairbrush", "", "Toiletries", false],
+  ["Razor", "", "Toiletries", false],
+  ["Perfume", "", "Toiletries", false],
+  ["Period supplies", "", "Toiletries", false],
+  ["Nail clippers", "checked bag only", "Toiletries", false],
+
+  ["Underwear", "", "Clothes", false],
+  ["Socks", "", "Clothes", false],
+  ["Tops / t-shirts", "", "Clothes", false],
+  ["Trousers / jeans", "", "Clothes", false],
+  ["Dress", "", "Clothes", false],
+  ["Jumper / cardigan", "", "Clothes", false],
+  ["Jacket / coat", "", "Clothes", false],
+  ["Pyjamas", "", "Clothes", false],
+  ["Swimwear", "", "Clothes", false],
+  ["Comfy walking shoes", "", "Clothes", false],
+  ["Nice shoes", "", "Clothes", false],
+  ["Sunglasses", "", "Clothes", false],
+  ["Hat / scarf", "", "Clothes", false],
+
+  ["Day bag / tote", "", "Day bag", false],
+  ["Reusable water bottle", "empty it before security", "Day bag", false],
+  ["Snacks", "", "Day bag", false],
+  ["Neck pillow", "", "Day bag", false],
+  ["Eye mask & earplugs", "", "Day bag", false],
+  ["Book / Kindle", "", "Day bag", false],
+  ["Tissues / wet wipes", "", "Day bag", false],
+  ["Umbrella / raincoat", "", "Day bag", false],
+
+  ["Check in for your flight", "", "Before you leave", true],
+  ["Tell your bank you're travelling", "", "Before you leave", false],
+  ["Charge everything", "", "Before you leave", false],
+  ["Empty the fridge", "", "Before you leave", false],
+  ["Take the bins out", "", "Before you leave", false],
+  ["Turn off heating / AC", "", "Before you leave", false],
+  ["Unplug appliances", "", "Before you leave", false],
+  ["Lock windows & doors", "", "Before you leave", false],
+  ["Water the plants", "", "Before you leave", false],
+  ["Set an out-of-office", "", "Before you leave", false]
+];
+
+/* Auto-sorting for anything typed in */
+const KEYWORDS = {
+  "Documents & Money": ["passport","visa","ticket","boarding","insurance","card","cash","currency","money","wallet","licence","license","booking","reservation","itinerary","certificate","document","permit"],
+  "Electronics": ["charger","cable","adaptor","adapter","power bank","powerbank","phone","laptop","tablet","camera","headphone","earbud","airpod","kindle","sim","smartwatch","plug","battery","drone","console"],
+  "Health & Meds": ["medication","medicine","prescription","painkiller","paracetamol","ibuprofen","antihistamine","plaster","band-aid","first aid","sunscreen","repellent","sanitiser","sanitizer","vitamin","inhaler","epipen","contact lens","glasses","thermometer"],
+  "Toiletries": ["toothbrush","toothpaste","shampoo","conditioner","body wash","soap","deodorant","moisturis","moisturiz","razor","shaving","makeup","make-up","skincare","serum","perfume","floss","hairbrush","comb","nail","tampon","period","lotion","cotton","hair dryer","straightener"],
+  "Clothes": ["shirt","top","trouser","jean","dress","skirt","jumper","cardigan","hoodie","jacket","coat","pyjama","pajama","underwear","sock","bra","swim","bikini","shoe","sandal","boot","trainer","sneaker","heel","hat","scarf","glove","belt","sunglasses","clothes","outfit","legging","shorts","gym gear"],
+  "Day bag": ["day bag","backpack","tote","handbag","water bottle","snack","umbrella","raincoat","neck pillow","eye mask","earplug","book","kindle reader","tissue","wipe","pen","notebook","map","guidebook"],
+  "Before you leave": ["bin","rubbish","fridge","heating","thermostat","unplug","lock","plant","out-of-office","check in","alarm","spare key","post","mail","curtains","dishwasher"]
+};
+
+function guessCategory(rawName) {
+  const name = rawName.toLowerCase().trim();
+  let best = null, bestLen = 0;
+  for (const cat in KEYWORDS) {
+    for (const kw of KEYWORDS[cat]) {
+      if (name.includes(kw) && kw.length > bestLen) { best = cat; bestLen = kw.length; }
+    }
+  }
+  return best || "Other";
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+const MASTER_ITEMS = STARTER.map(([name, note, section, crit], i) => ({
+  id: 'd' + i + '-' + slugify(name), name, note: note || '', section, crit: !!crit
+}));
+
+const SECTION_ICON = {};
+CATEGORIES.forEach(c => { SECTION_ICON[c.name] = c.icon; });
+const SECTION_ORDER = CATEGORIES.map(c => c.name);
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      s.selected = s.selected || {};
+      s.customItems = s.customItems || [];
+      s.hidden = s.hidden || {};
+      s.manifest = s.manifest || [];
+      s.leg = s.leg || 'out';
+      return s;
+    }
+  } catch (e) {}
+  return { mode: 'plan', selected: {}, customItems: [], hidden: {}, manifest: [], leg: 'out', lastRemoved: null, lastDeleted: null };
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+let state = loadState();
+
+function allItems() {
+  return MASTER_ITEMS.concat(state.customItems || []).filter(it => !state.hidden[it.id]);
+}
+
+function itemsBySection(list) {
+  const map = {};
+  list.forEach(it => {
+    if (!map[it.section]) map[it.section] = [];
+    map[it.section].push(it);
+  });
+  return map;
+}
+
+function toggleSelect(id) {
+  if (state.selected[id]) delete state.selected[id];
+  else state.selected[id] = true;
+  saveState();
+  render();
+}
+
+function deleteItem(id, name) {
+  state.hidden[id] = true;
+  delete state.selected[id];
+  state.lastDeleted = { id, name };
+  saveState();
+  render();
+  showToast('Deleted: ' + name, undoDelete);
+}
+
+function undoDelete() {
+  if (!state.lastDeleted) return;
+  delete state.hidden[state.lastDeleted.id];
+  state.lastDeleted = null;
+  saveState();
+  render();
+}
+
+function restoreAllHidden() {
+  state.hidden = {};
+  state.lastDeleted = null;
+  saveState();
+  render();
+}
+
+function packItem(id, name) {
+  const el = document.querySelector('[data-id="' + CSS.escape(id) + '"]');
+  const finish = () => {
+    delete state.selected[id];
+    state.lastRemoved = { id, name };
+    saveState();
+    render();
+    showToast('✈️ Packed: ' + name, undoPack);
+  };
+  if (el) {
+    el.classList.add('removing');
+    setTimeout(finish, 140);
+  } else {
+    finish();
+  }
+}
+
+function undoPack() {
+  if (!state.lastRemoved) return;
+  state.selected[state.lastRemoved.id] = true;
+  state.lastRemoved = null;
+  saveState();
+  render();
+}
+
+/* ---- Start packing: remember what this trip is taking ---- */
+function startPacking() {
+  state.manifest = Object.keys(state.selected);
+  state.leg = 'out';
+  state.mode = 'shop';
+  saveState();
+  render();
+}
+
+/* ---- The trip home: bring back everything you took ---- */
+function packForHome() {
+  const byId = {};
+  allItems().forEach(it => { byId[it.id] = it; });
+  const fresh = {};
+  (state.manifest || []).forEach(id => {
+    const it = byId[id];
+    if (it && it.section !== HOME_ONLY) fresh[id] = true;
+  });
+  state.selected = fresh;
+  state.leg = 'home';
+  state.mode = 'shop';
+  saveState();
+  render();
+}
+
+function newTrip() {
+  state.selected = {};
+  state.manifest = [];
+  state.leg = 'out';
+  state.mode = 'plan';
+  saveState();
+  render();
+}
+
+function backToPlan() { state.mode = 'plan'; saveState(); render(); }
+function resetSelections() { state.selected = {}; saveState(); render(); }
+
+function showToast(msg, undoFn) {
+  const host = document.getElementById('toastHost');
+  host.innerHTML = '<div class="toast"><span>' + escapeHtml(msg) + '</span>' +
+    (undoFn ? '<button id="toastUndo">UNDO</button>' : '') + '</div>';
+  if (undoFn) {
+    document.getElementById('toastUndo').onclick = () => { undoFn(); host.innerHTML = ''; };
+  }
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { host.innerHTML = ''; }, 4000);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function addCustomItem() {
+  const input = document.getElementById('customInput');
+  const name = input.value.trim();
+  if (!name) return;
+  const section = guessCategory(name);
+  const id = 'c-' + Date.now();
+  state.customItems.push({ id, name, note: '', section, crit: false });
+  state.selected[id] = true;
+  input.value = '';
+  saveState();
+  render();
+  showToast('Added to ' + section, null);
+}
+
+function render() {
+  const main = document.getElementById('main');
+  const titleEl = document.getElementById('pageTitle');
+  const subtitle = document.getElementById('pageSubtitle');
+  const bar = document.getElementById('bottomBar');
+  main.innerHTML = '';
+
+  if (state.mode === 'plan') {
+    titleEl.textContent = "Edna's Packing List 🧳";
+    const count = Object.keys(state.selected).length;
+    subtitle.textContent = count
+      ? count + ' thing' + (count === 1 ? '' : 's') + ' coming with you 💕'
+      : "Tick what you're taking, then start packing ✈️";
+
+    const bySection = itemsBySection(allItems());
+    SECTION_ORDER.forEach(secName => {
+      const secItems = bySection[secName];
+      if (!secItems || !secItems.length) return;
+      const sec = document.createElement('div');
+      sec.className = 'section';
+      const checkedInSec = secItems.filter(it => state.selected[it.id]).length;
+      sec.innerHTML = '<div class="section-title">' + (SECTION_ICON[secName] || '') + ' ' + escapeHtml(secName) +
+        (checkedInSec ? ' <span class="count-pill">' + checkedInSec + '</span>' : '') + '</div>';
+      const card = document.createElement('div');
+      card.className = 'card';
+      secItems.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'item' + (state.selected[it.id] ? ' checked' : '');
+        row.setAttribute('data-id', it.id);
+
+        const tap = document.createElement('div');
+        tap.className = 'tap-zone';
+        tap.innerHTML = '<div class="box">' + (state.selected[it.id] ? '✓' : '') + '</div>' +
+          '<div class="item-text"><div class="item-name">' + escapeHtml(it.name) +
+          (it.crit ? '<span class="crit-dot" title="Don\'t leave without this"></span>' : '') + '</div>' +
+          (it.note ? '<div class="item-note">' + escapeHtml(it.note) + '</div>' : '') + '</div>';
+        tap.onclick = () => toggleSelect(it.id);
+
+        const del = document.createElement('button');
+        del.className = 'del-btn';
+        del.innerHTML = '&times;';
+        del.setAttribute('aria-label', 'Delete ' + it.name);
+        del.onclick = (e) => { e.stopPropagation(); deleteItem(it.id, it.name); };
+
+        row.appendChild(tap);
+        row.appendChild(del);
+        card.appendChild(row);
+      });
+      sec.appendChild(card);
+      main.appendChild(sec);
+    });
+
+    const addSec = document.createElement('div');
+    addSec.className = 'section';
+    addSec.innerHTML = '<div class="section-title">🌸 Add something else</div>' +
+      '<div class="add-row"><input id="customInput" type="text" placeholder="e.g. hair straightener, snorkel" /><button onclick="addCustomItem()" aria-label="Add">+</button></div>' +
+      '<div class="hint">New things pop into the right section by themselves ✨ · red dot = don\'t leave without it</div>';
+    main.appendChild(addSec);
+    document.getElementById('customInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addCustomItem();
+    });
+
+    const hiddenCount = Object.keys(state.hidden).length;
+    if (hiddenCount) {
+      const restore = document.createElement('button');
+      restore.className = 'restore-btn';
+      restore.textContent = '↩ Bring back ' + hiddenCount + ' deleted item' + (hiddenCount === 1 ? '' : 's');
+      restore.onclick = restoreAllHidden;
+      main.appendChild(restore);
+    }
+
+    bar.innerHTML = '';
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-secondary';
+    resetBtn.textContent = 'Clear';
+    resetBtn.onclick = resetSelections;
+    const startBtn = document.createElement('button');
+    startBtn.className = 'btn btn-primary';
+    startBtn.textContent = count ? '✨ Start packing (' + count + ')' : 'Start packing';
+    startBtn.disabled = !count;
+    startBtn.onclick = startPacking;
+    bar.appendChild(resetBtn);
+    bar.appendChild(startBtn);
+
+  } else {
+    const goingHome = state.leg === 'home';
+    const items = allItems().filter(it => state.selected[it.id]);
+    const remaining = items.length;
+    const critLeft = items.filter(it => it.crit).length;
+
+    titleEl.textContent = goingHome ? 'Packing to come home 🧳' : 'Packing 🧳';
+    subtitle.textContent = remaining
+      ? remaining + ' thing' + (remaining === 1 ? '' : 's') + ' to go — tap as it goes in the bag'
+      : (goingHome ? 'All packed. Safe travels home 💕' : 'All packed, gorgeous!');
+
+    if (!remaining) {
+      main.innerHTML = '<div class="empty-msg">' +
+        (goingHome
+          ? '🏡 Everything\'s back in the bag.<br>Have a lovely trip home!'
+          : '🎀 You\'re all packed!<br>Tap <strong>Coming home</strong> when it\'s time to repack.') +
+        '</div>';
+    } else {
+      if (critLeft) {
+        const warn = document.createElement('div');
+        warn.className = 'warn-strip';
+        warn.textContent = '⚠️ ' + critLeft + ' must-have' + (critLeft === 1 ? '' : 's') + ' still not packed';
+        main.appendChild(warn);
+      }
+      const bySection = itemsBySection(items);
+      SECTION_ORDER.forEach(secName => {
+        const secItems = bySection[secName];
+        if (!secItems || !secItems.length) return;
+        const sec = document.createElement('div');
+        sec.className = 'section';
+        sec.innerHTML = '<div class="section-title">' + (SECTION_ICON[secName] || '') + ' ' + escapeHtml(secName) +
+          ' <span class="count-pill">' + secItems.length + '</span></div>';
+        const card = document.createElement('div');
+        card.className = 'card shop';
+        secItems.forEach(it => {
+          const row = document.createElement('div');
+          row.className = 'item';
+          row.setAttribute('data-id', it.id);
+          row.innerHTML = '<div class="tap-zone"><div class="box"></div>' +
+            '<div class="item-text"><div class="item-name">' + escapeHtml(it.name) +
+            (it.crit ? '<span class="crit-dot"></span>' : '') + '</div>' +
+            (it.note ? '<div class="item-note">' + escapeHtml(it.note) + '</div>' : '') + '</div></div>';
+          row.onclick = () => packItem(it.id, it.name);
+          card.appendChild(row);
+        });
+        sec.appendChild(card);
+        main.appendChild(sec);
+      });
+    }
+
+    bar.innerHTML = '';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-secondary';
+    editBtn.textContent = 'Edit list';
+    editBtn.onclick = backToPlan;
+    bar.appendChild(editBtn);
+
+    if (!remaining && !goingHome && (state.manifest || []).length) {
+      const homeBtn = document.createElement('button');
+      homeBtn.className = 'btn btn-primary';
+      homeBtn.textContent = '🏡 Coming home';
+      homeBtn.onclick = packForHome;
+      bar.appendChild(homeBtn);
+    } else if (!remaining) {
+      const doneBtn = document.createElement('button');
+      doneBtn.className = 'btn btn-primary';
+      doneBtn.textContent = '✨ New trip';
+      doneBtn.onclick = newTrip;
+      bar.appendChild(doneBtn);
+    }
+  }
+}
+
+render();
+
+/* ---- Offline support: register the service worker ---- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {
+      /* No offline caching available — the app still works normally. */
+    });
+  });
+}
+</script>
+</body>
+</html>
