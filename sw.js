@@ -1,7 +1,7 @@
 /* Service worker — makes the packing list work with no internet.
    Bump CACHE_NAME whenever you upload a new version of the app. */
 
-const CACHE_NAME = 'edna-packing-v1';
+const CACHE_NAME = 'edna-packing-v2';
 
 const ASSETS = [
   './',
