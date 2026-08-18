@@ -146,7 +146,81 @@
   }
   .del-btn:active { background: rgba(255, 77, 61, 0.14); color: var(--accent2); }
   .shop .item { cursor: pointer; }
-  .item.removing { opacity: 0; transform: scale(0.95); }
+  /* ---- Leaving the list ----
+     Packed = the row zips shut. Deleted = the row crumples away.
+     Two different feelings on purpose, both under a third of a second. */
+  .item.zipping,
+  .item.crumpling {
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* The closed track the zip leaves behind it. */
+  .item.zipping::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255,138,30,0.05), rgba(255,138,30,0.20));
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: zip-track 200ms cubic-bezier(.45,0,.25,1) forwards;
+  }
+  /* The zip head: a bright edge with a short glow trailing it. */
+  .item.zipping::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      rgba(255,138,30,0) calc(100% - 30px),
+      rgba(255,138,30,0.40) calc(100% - 8px),
+      var(--accent)   calc(100% - 3px),
+      var(--accent)   100%);
+    transform: translateX(-100%);
+    animation: zip-head 200ms cubic-bezier(.45,0,.25,1) forwards;
+  }
+  @keyframes zip-track { to { transform: scaleX(1); } }
+  @keyframes zip-head  { to { transform: translateX(0); } }
+
+  .item.zipping .item-text { animation: zip-text 200ms ease-in forwards; }
+  @keyframes zip-text { to { opacity: 0.4; transform: translateX(4px); } }
+
+  .item.zipping .box {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color: transparent;
+    animation: zip-box 200ms ease-out forwards;
+  }
+  .item.zipping .box::after { content: '✓'; }
+  @keyframes zip-box { 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+  .item.crumpling {
+    transform-origin: right center;
+    animation: crumple 180ms cubic-bezier(.4,0,.7,1) forwards;
+  }
+  @keyframes crumple {
+    35%  { transform: skewX(-5deg) scaleY(0.94); }
+    100% { transform: skewX(-11deg) scaleY(0.78) translateX(28px); opacity: 0; filter: grayscale(1); }
+  }
+
+  /* Both endings finish the same way: the row folds to no height at all. */
+  .item.collapsing {
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: height 120ms cubic-bezier(.4,0,1,1),
+                padding 120ms cubic-bezier(.4,0,1,1),
+                opacity 120ms linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .item.zipping, .item.zipping::before, .item.zipping::after,
+    .item.zipping .item-text, .item.zipping .box,
+    .item.crumpling { animation: none; }
+    .item.collapsing { transition: none; }
+  }
   .empty-msg {
     text-align: center;
     color: var(--muted);
@@ -441,13 +515,36 @@ function toggleSelect(id) {
   render();
 }
 
+/* ---- Leaving the list ----
+   The row plays a short exit animation, then the whole list redraws.
+   The state changes straight away so fast tapping can't get out of step --
+   only the redraw waits for the animation to finish. */
+const ROW_COLLAPSE_MS = 120;
+
+function reducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+function animateRowOut(id, effectClass, effectMs, done) {
+  const el = document.querySelector('[data-id="' + CSS.escape(id) + '"]');
+  if (!el || reducedMotion()) { done(); return; }
+  el.classList.add(effectClass);
+  setTimeout(function () {
+    el.style.height = el.offsetHeight + 'px';
+    void el.offsetHeight;            /* make the browser accept the fixed height first */
+    el.classList.add('collapsing');
+    el.style.height = '0px';
+    setTimeout(done, ROW_COLLAPSE_MS);
+  }, effectMs);
+}
+
 function deleteItem(id, name) {
   state.hidden[id] = true;
   delete state.selected[id];
   state.lastDeleted = { id, name };
   saveState();
-  render();
   showToast('Deleted: ' + name, undoDelete);
+  animateRowOut(id, 'crumpling', 180, render);
 }
 
 function undoDelete() {
@@ -466,20 +563,11 @@ function restoreAllHidden() {
 }
 
 function packItem(id, name) {
-  const el = document.querySelector('[data-id="' + CSS.escape(id) + '"]');
-  const finish = () => {
-    delete state.selected[id];
-    state.lastRemoved = { id, name };
-    saveState();
-    render();
-    showToast('✈️ Packed: ' + name, undoPack);
-  };
-  if (el) {
-    el.classList.add('removing');
-    setTimeout(finish, 140);
-  } else {
-    finish();
-  }
+  delete state.selected[id];
+  state.lastRemoved = { id, name };
+  saveState();
+  showToast('✈️ Packed: ' + name, undoPack);
+  animateRowOut(id, 'zipping', 200, render);
 }
 
 function undoPack() {
